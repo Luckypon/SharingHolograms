@@ -242,6 +242,10 @@ public class MarkerSpacePinManager : AMarkerManager
                 HighlightProxy.transform.localPosition = offset;
                 Button.transform.localPosition = new Vector3(offset.x, offset.y, offset.z + 0.0634f);
                 Button.transform.localRotation = Quaternion.Euler(180, 0, 0);
+
+                DebugShowPositions tmpDebugShowPositions = GetComponentInChildren<DebugShowPositions>();
+                if(tmpDebugShowPositions != null)
+                    tmpDebugShowPositions.transform.localRotation = Quaternion.Euler(180, 0, 0);
             }
             else
             {
