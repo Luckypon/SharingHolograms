@@ -1,6 +1,7 @@
 ﻿using Microsoft.MixedReality.QR;
 using Microsoft.MixedReality.WorldLocking.Core;
 using Microsoft.MixedReality.WorldLocking.Samples.Advanced.QRSpacePins;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -14,6 +15,11 @@ public class MarkersSpacePinsManager : AMarkersManager // TODO : refactoriser, p
     public AlignSubtree MyAlignSubtree;
 
     public PositionMarkerHelper MyPositionMarkerHelper;
+
+    /// <summary>
+    /// Shared Orienter to compute rotations implied by relative positions.
+    /// </summary>
+    public Orienter MyOrienter;
 
     public ImportExportMarkers MyImportExportMarkers;
     //QRCODES
@@ -112,7 +118,7 @@ public class MarkersSpacePinsManager : AMarkersManager // TODO : refactoriser, p
             }
         }
         else
-        {
+        {            
             currentMarker.UpdateByQR(qrCode);
         }
     }
@@ -153,8 +159,8 @@ public class MarkersSpacePinsManager : AMarkersManager // TODO : refactoriser, p
 
         if (_tmpCoordinateSystem.ComputePose(out Pose spongyPose))
         {
-            //Pose frozenPose = WorldLockingManager.GetInstance().FrozenFromSpongy
-            MyPositionMarkerHelper.SetGlobalPose(spongyPose);
+            Pose frozenPose = WorldLockingManager.GetInstance().FrozenFromSpongy.Multiply(spongyPose);
+            MyPositionMarkerHelper.SetGlobalPose(frozenPose);
 
             Pose localPose = MyPositionMarkerHelper.GetLocalPose();
 
@@ -194,11 +200,8 @@ public class MarkersSpacePinsManager : AMarkersManager // TODO : refactoriser, p
     }
     internal void AddOrUpdateMarkersByJSON(List<MarkerData> markersJSON)
     {
-        Debug.Log("AddOrUpdateMarkersByJSON : " + markersJSON.Count + "markers");
-
         foreach (var markerData in markersJSON)
         {
-            Debug.Log($"Marker={markerData.Id}: position={markerData.Position}, rotationEuler={markerData.Rotation.eulerAngles}");
             var markerInList = _markers.FirstOrDefault(i => i.Id == markerData.Id);
             if (markerInList == null)
             {
@@ -207,7 +210,7 @@ public class MarkersSpacePinsManager : AMarkersManager // TODO : refactoriser, p
             markerInList.UpdateByJSON(markerData);
         }
         SetUpAlignSubTree();
-        ResetAllMarkers(); // TODO : remove it ?
+        ShowAlreadyScannedMarkers();
     }
 
     #endregion
@@ -245,7 +248,6 @@ public class MarkersSpacePinsManager : AMarkersManager // TODO : refactoriser, p
 
     private void SetUpAlignSubTree()
     {
-        Debug.Log("SetUpAlignSubTree");
         MyAlignSubtree.ClearOwnedPins();
         int added = 0;
         foreach (var marker in _markers)
@@ -260,6 +262,14 @@ public class MarkersSpacePinsManager : AMarkersManager // TODO : refactoriser, p
         }
     }
 
+    private void ShowAlreadyScannedMarkers()
+    {
+        foreach (var marker in _markers)
+        {
+            marker.UpdateIfActive();
+        }
+    }
+
 
     private bool AtLeastOneMarkerDetected()
     {
@@ -269,6 +279,8 @@ public class MarkersSpacePinsManager : AMarkersManager // TODO : refactoriser, p
         }
         return false;
     }
+
+
 
 
 }

@@ -55,7 +55,7 @@ namespace Microsoft.MixedReality.WorldLocking.Core
         public IAlignmentManager AlignmentManager
         {
             get { return alignmentManager; }
-            set 
+            set
             {
                 if (alignmentManager != value)
                 {
@@ -240,7 +240,7 @@ namespace Microsoft.MixedReality.WorldLocking.Core
         {
             modelingPoseLocal = transform.GetLocalPose();
             modelingPoseGlobal = transform.GetGlobalPose();
-        }       
+        }
 
         /// <summary>
         /// Go back to initial state, including removal of self-artifacts from alignment manager.
@@ -327,7 +327,7 @@ namespace Microsoft.MixedReality.WorldLocking.Core
                 Debug.Assert(found);
                 lockedPose = restorePose;
             }
-            Debug.Log($"PinActive={PinActive}: n={AnchorName}, mpg={ModelingPoseGlobal}, lp={lockedPose}");
+            //Debug.Log($"PinActive={PinActive}: id={AnchorId}, n={AnchorName}, mpg={ModelingPoseGlobal}, lp={lockedPose}");
             CheckAttachment();
         }
 

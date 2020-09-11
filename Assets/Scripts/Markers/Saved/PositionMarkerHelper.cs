@@ -3,6 +3,7 @@ using UnityEngine;
 
 public class PositionMarkerHelper : MonoBehaviour
 {
+    public GameObject DummyTransformPrefab;
     private Transform _dummyTransform;
 
     private void Awake()
@@ -38,11 +39,15 @@ public class PositionMarkerHelper : MonoBehaviour
     {
         if (_dummyTransform == null)
         {
-            _dummyTransform = new GameObject().transform;
-           // _dummyTransform = GameObject.CreatePrimitive(PrimitiveType.Cube).transform;
+            //_dummyTransform = new GameObject().transform;
+            //_dummyTransform = GameObject.CreatePrimitive(PrimitiveType.Cube).transform;
+            if (DummyTransformPrefab != null)
+                _dummyTransform = GameObject.Instantiate(DummyTransformPrefab).transform;
+            else
+                _dummyTransform = new GameObject().transform;
             _dummyTransform.name = "_dummyTransform";
-           // _dummyTransform.hideFlags = HideFlags.HideInHierarchy;
             _dummyTransform.localScale = new Vector3(0.02f, 0.05f, 0.01f);
+            // _dummyTransform.hideFlags = HideFlags.HideInHierarchy;
             ResetParent();
             MoveLocalPose(Vector3.zero, Quaternion.identity);
         }

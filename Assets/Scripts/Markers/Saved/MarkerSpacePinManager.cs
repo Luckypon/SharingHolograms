@@ -1,6 +1,7 @@
 ﻿using Microsoft.MixedReality.QR;
 using Microsoft.MixedReality.WorldLocking.Core;
 using Microsoft.MixedReality.WorldLocking.Samples.Advanced.QRSpacePins;
+using System;
 using System.Collections;
 using UnityEngine;
 
@@ -14,7 +15,7 @@ public class MarkerSpacePinManager : AMarkerManager
     internal static int index = 0;
 
     private PositionMarkerHelper _positionMarkerHelper;
-    private SpacePin _spacePin = null;
+    private SpacePinOrientable _spacePin = null;
     private Coroutine m_myCoroutineRef;
     private float _sizeMeters = 1.0f;
     private MarkersSpacePinsManager _myManager;
@@ -58,8 +59,9 @@ public class MarkerSpacePinManager : AMarkerManager
             _coordinateSystem = new QRSpatialCoord();
         }
 
-        _spacePin = VirtualMarker.gameObject.AddComponent<SpacePin>();
-        //  _spacePin.Orienter = orienter;
+        _spacePin = VirtualMarker.gameObject.AddComponent<SpacePinOrientable>();
+        _spacePin.Orienter = _myManager.MyOrienter;
+
         _spacePin.ResetModelingPose();
         ShowHighlightProxy(false);
     }
@@ -79,6 +81,17 @@ public class MarkerSpacePinManager : AMarkerManager
             StopCoroutine(m_myCoroutineRef);
         m_myCoroutineRef = null;
     }
+
+    internal void UpdateIfActive()
+    {
+        Debug.Log($"PinActive={_spacePin.PinActive}: id={_id}");
+        if (!_spacePin.PinActive) return;
+
+        _lastLockedPose = WorldLockingManager.GetInstance().LockedFromFrozen.Multiply(_spacePin.transform.GetGlobalPose());
+        ShowHighlightProxy(true);
+        Debug.Log($"_lastLockedPose={_lastLockedPose}");
+    }
+
     #region QR CODES
 
     internal void UpdateByQR(QRCode qrCode)
@@ -134,6 +147,7 @@ public class MarkerSpacePinManager : AMarkerManager
         Pose lockedPose = WorldLockingManager.GetInstance().LockedFromFrozen.Multiply(frozenPose);
         if (NeedCommit(lockedPose))
         {
+            Debug.Log($"NeedCommit={lockedPose}");
             _spacePin.SetFrozenPose(frozenPose);
 
             ShowHighlightProxy(true);
@@ -146,6 +160,7 @@ public class MarkerSpacePinManager : AMarkerManager
 
     private bool NeedCommit(Pose lockedPose)
     {
+        if (!IsSpacePinActive()) return true;
         float RefreshThreshold = 0.01f; // one cm?
         float distance = Vector3.Distance(lockedPose.position, _lastLockedPose.position);
         if (distance > RefreshThreshold)
@@ -239,6 +254,7 @@ public class MarkerSpacePinManager : AMarkerManager
             }
         }
     }
+
 
 }
 
