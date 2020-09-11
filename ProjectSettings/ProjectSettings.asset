@@ -569,7 +569,7 @@ PlayerSettings:
   m_MobileRenderingPath: 1
   metroPackageName: TestProject
   metroPackageVersion: 1.0.0.0
-  metroCertificatePath: D:\Projets\Hololens 2 Project\Unity Project\Assets\WSATestCertificate.pfx
+  metroCertificatePath: Assets\WSATestCertificate.pfx
   metroCertificatePassword: 
   metroCertificateSubject: Default_Company
   metroCertificateIssuer: Default_Company

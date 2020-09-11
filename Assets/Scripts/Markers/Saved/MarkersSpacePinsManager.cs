@@ -26,14 +26,11 @@ public class MarkersSpacePinsManager : AMarkersManager // TODO : refactoriser, p
     {
         _tmpCoordinateSystem = new QRSpatialCoord();
     }
-    private void OnEnable()
-    {
-        ShowHolograms();
-    }
 
     // reset the view, but the markers are still saved
     public void ResetAllMarkers() // call from button
     {
+        Debug.Log("ResetAllMarkers");
         if (_markers.Count > 0)
         {
             for (int i = 0; i < _markers.Count; i++)
@@ -41,7 +38,26 @@ public class MarkersSpacePinsManager : AMarkersManager // TODO : refactoriser, p
                 _markers[i].ResetSpacePin();
             }
         }
-        ShowHolograms();
+    }
+
+
+    private void Update()
+    {
+#if UNITY_EDITOR
+        if (!SceneToShow.activeSelf)
+        {
+            Debug.Log("the root game object was not active");
+            SceneToShow.SetActive(true);
+        }
+#endif
+
+#if !UNITY_EDITOR
+        bool active = AtLeastOneMarkerDetected();
+        if(SceneToShow.activeSelf != active)
+        {
+            SceneToShow.SetActive(active);
+        }
+#endif
     }
 
     internal void RemoveAMarker(MarkerSpacePinManager marker)
@@ -54,13 +70,13 @@ public class MarkersSpacePinsManager : AMarkersManager // TODO : refactoriser, p
             _markers.Remove(marker);
 
         Destroy(marker.gameObject);
-        ShowHolograms();
 
         MyImportExportMarkers.Export();
     }
 
     public void DeleteAllAddedMarkers() // call from button
     {
+        Debug.Log("DeleteAllAddedMarkers");
         ResetAllMarkers();
 
         for (int i = _markers.Count - 1; i >= 0; i--)
@@ -99,8 +115,6 @@ public class MarkersSpacePinsManager : AMarkersManager // TODO : refactoriser, p
         {
             currentMarker.UpdateByQR(qrCode);
         }
-
-        ShowHolograms();
     }
 
     internal override void ResetQRCode(QRCode qrCode)
@@ -114,7 +128,6 @@ public class MarkersSpacePinsManager : AMarkersManager // TODO : refactoriser, p
         {
             currentMarker.ResetSpacePin();
         }
-        ShowHolograms();
     }
 
     private MarkerSpacePinManager GetMarkerByQRCode(QRCode qrCode)
@@ -181,7 +194,7 @@ public class MarkersSpacePinsManager : AMarkersManager // TODO : refactoriser, p
     }
     internal void AddOrUpdateMarkersByJSON(List<MarkerData> markersJSON)
     {
-        Debug.Log("JSON add/update " + markersJSON.Count + "markers");
+        Debug.Log("AddOrUpdateMarkersByJSON : " + markersJSON.Count + "markers");
 
         foreach (var markerData in markersJSON)
         {
@@ -194,7 +207,7 @@ public class MarkersSpacePinsManager : AMarkersManager // TODO : refactoriser, p
             markerInList.UpdateByJSON(markerData);
         }
         SetUpAlignSubTree();
-        ResetAllMarkers();
+        ResetAllMarkers(); // TODO : remove it ?
     }
 
     #endregion
@@ -232,6 +245,7 @@ public class MarkersSpacePinsManager : AMarkersManager // TODO : refactoriser, p
 
     private void SetUpAlignSubTree()
     {
+        Debug.Log("SetUpAlignSubTree");
         MyAlignSubtree.ClearOwnedPins();
         int added = 0;
         foreach (var marker in _markers)
@@ -244,17 +258,16 @@ public class MarkersSpacePinsManager : AMarkersManager // TODO : refactoriser, p
             MyAlignSubtree.ClaimPinOwnership();
             MyAlignSubtree.Load();
         }
-
     }
 
-    private void ShowHolograms()
-    {
-        SceneToShow.SetActive(AtLeastOneMarkerDetected());
-    }
 
     private bool AtLeastOneMarkerDetected()
     {
-        return _markers.Where(v => v.IsDetectedInWorld).Count() > 0;
+        for (int i = 0; i < _markers.Count; i++)
+        {
+            if (_markers[i].IsSpacePinActive()) return true;
+        }
+        return false;
     }
 
 

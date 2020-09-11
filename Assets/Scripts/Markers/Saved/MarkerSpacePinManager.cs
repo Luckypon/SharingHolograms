@@ -19,13 +19,11 @@ public class MarkerSpacePinManager : AMarkerManager
     private float _sizeMeters = 1.0f;
     private MarkersSpacePinsManager _myManager;
 
-    private bool _isDetectedInWorld = false;
     private string _id = "";
     private bool _isQR;
 
     public string Id { get => _id; }
     public bool IsQR { get => _isQR; }
-    public bool IsDetectedInWorld { get => _isDetectedInWorld; }
 
     // QRCODES
     private QRSpatialCoord _coordinateSystem = null;
@@ -36,6 +34,11 @@ public class MarkerSpacePinManager : AMarkerManager
         _positionMarkerHelper = GetComponent<PositionMarkerHelper>();
     }
 
+    internal bool IsSpacePinActive()
+    {
+        if (_spacePin == null) return false;
+        return _spacePin.PinActive;
+    }
     public void DeleteThisMarker() // call from button
     {
         if (_myManager != null)
@@ -58,7 +61,6 @@ public class MarkerSpacePinManager : AMarkerManager
         _spacePin = VirtualMarker.gameObject.AddComponent<SpacePin>();
         //  _spacePin.Orienter = orienter;
         _spacePin.ResetModelingPose();
-        _isDetectedInWorld = false;
         ShowHighlightProxy(false);
     }
 
@@ -67,7 +69,6 @@ public class MarkerSpacePinManager : AMarkerManager
     {
         if (_spacePin != null)
             _spacePin.Reset();
-        _isDetectedInWorld = false;
         ShowHighlightProxy(false);
     }
 
@@ -92,7 +93,6 @@ public class MarkerSpacePinManager : AMarkerManager
         if (!UpdateByQRHelper(qrCode, out Pose frozenPose)) return;
 
         WaitThenUpdateQR(frozenPose);
-        _isDetectedInWorld = true;
     }
 
     private bool UpdateByQRHelper(QRCode qrCode, out Pose frozenPose)
@@ -138,7 +138,6 @@ public class MarkerSpacePinManager : AMarkerManager
 
             ShowHighlightProxy(true);
 
-            _isDetectedInWorld = true;
             _lastLockedPose = lockedPose;
 
             _positionMarkerHelper.SetGlobalPose(_spacePin.transform.GetGlobalPose());
@@ -147,10 +146,6 @@ public class MarkerSpacePinManager : AMarkerManager
 
     private bool NeedCommit(Pose lockedPose)
     {
-        if (!_isDetectedInWorld)
-        {
-            return true;
-        }
         float RefreshThreshold = 0.01f; // one cm?
         float distance = Vector3.Distance(lockedPose.position, _lastLockedPose.position);
         if (distance > RefreshThreshold)
