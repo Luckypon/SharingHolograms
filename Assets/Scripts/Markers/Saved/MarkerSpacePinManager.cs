@@ -8,9 +8,16 @@ using UnityEngine;
 [RequireComponent(typeof(PositionMarkerHelper))]
 public class MarkerSpacePinManager : AMarkerManager
 {
+    public enum DoAfterScan
+    {
+        Nothing,
+        UpdateWorld,
+        UpdateMarker
+    }
+
     public Transform VirtualMarker;
     public GameObject HighlightProxy;
-    public GameObject Button;
+    public GameObject UpdateWorldButton, UpdatePoseButton, DeleteButton;
 
     internal static int index = 0;
 
@@ -22,17 +29,27 @@ public class MarkerSpacePinManager : AMarkerManager
 
     private string _id = "";
     private bool _isQR;
+    private Pose _lastLockedPose = Pose.identity;
+    private DoAfterScan _doAfterScan = DoAfterScan.Nothing;
 
     public string Id { get => _id; }
     public bool IsQR { get => _isQR; }
+    internal DoAfterScan ToDoAfterScan { get => _doAfterScan; }
 
     // QRCODES
     private QRSpatialCoord _coordinateSystem = null;
-    private Pose _lastLockedPose = Pose.identity;
 
     private void Awake()
     {
         _positionMarkerHelper = GetComponent<PositionMarkerHelper>();
+    }
+
+    private void OnDestroy()
+    {
+        ResetSpacePin();
+        if (m_myCoroutineRef != null)
+            StopCoroutine(m_myCoroutineRef);
+        m_myCoroutineRef = null;
     }
 
     internal bool IsSpacePinActive()
@@ -40,10 +57,13 @@ public class MarkerSpacePinManager : AMarkerManager
         if (_spacePin == null) return false;
         return _spacePin.PinActive;
     }
-    public void DeleteThisMarker() // call from button
+
+
+    internal void SetAgainLockedPose()
     {
-        if (_myManager != null)
-            _myManager.RemoveAMarker(this);
+        if (!_spacePin.PinActive) return;
+        if (_lastLockedPose == Pose.identity) return;
+        _spacePin.SetLockedPose(_lastLockedPose);
     }
 
     internal void Create(string id, bool isQR, MarkersSpacePinsManager manager, float sizeMeters)
@@ -74,13 +94,7 @@ public class MarkerSpacePinManager : AMarkerManager
         ShowHighlightProxy(false);
     }
 
-    private void OnDestroy()
-    {
-        ResetSpacePin();
-        if (m_myCoroutineRef != null)
-            StopCoroutine(m_myCoroutineRef);
-        m_myCoroutineRef = null;
-    }
+
 
     internal void UpdateIfActive()
     {
@@ -156,10 +170,13 @@ public class MarkerSpacePinManager : AMarkerManager
 
             _positionMarkerHelper.SetGlobalPose(_spacePin.transform.GetGlobalPose());
         }
+        _doAfterScan = DoAfterScan.Nothing;
     }
 
     private bool NeedCommit(Pose lockedPose)
     {
+        if (_doAfterScan == DoAfterScan.UpdateMarker) return true;
+        if (_doAfterScan == DoAfterScan.UpdateWorld) return true;
         if (!IsSpacePinActive()) return true;
         float RefreshThreshold = 0.01f; // one cm?
         float distance = Vector3.Distance(lockedPose.position, _lastLockedPose.position);
@@ -175,6 +192,7 @@ public class MarkerSpacePinManager : AMarkerManager
     #region JSON
     internal void UpdateByJSON(MarkerData data)
     {
+        _doAfterScan = DoAfterScan.Nothing;
         MoveDummyByJSON(data);
 
         _spacePin.transform.SetGlobalPose(_positionMarkerHelper.GetGlobalPose());
@@ -231,7 +249,9 @@ public class MarkerSpacePinManager : AMarkerManager
     private void ShowHighlightProxy(bool arg0)
     {
         HighlightProxy.SetActive(arg0);
-        Button.SetActive(arg0);
+        UpdatePoseButton.SetActive(arg0);
+        UpdateWorldButton.SetActive(arg0);
+        DeleteButton.SetActive(arg0);
         if (arg0)
         {
             if (_isQR)
@@ -240,11 +260,13 @@ public class MarkerSpacePinManager : AMarkerManager
                 Vector3 offset = scale * 0.5f;
                 HighlightProxy.transform.localScale = scale;
                 HighlightProxy.transform.localPosition = offset;
-                Button.transform.localPosition = new Vector3(offset.x, offset.y, offset.z + 0.0634f);
-                Button.transform.localRotation = Quaternion.Euler(180, 0, 0);
+
+                MoveButton(UpdatePoseButton, new Vector3(offset.x - 0.04f, offset.y, offset.z + 0.0634f), Quaternion.Euler(180, 0, 0));
+                MoveButton(UpdateWorldButton, new Vector3(offset.x, offset.y, offset.z + 0.0634f), Quaternion.Euler(180, 0, 0));
+                MoveButton(DeleteButton, new Vector3(offset.x + 0.04f, offset.y, offset.z + 0.0634f), Quaternion.Euler(180, 0, 0));
 
                 DebugShowPositions tmpDebugShowPositions = GetComponentInChildren<DebugShowPositions>();
-                if(tmpDebugShowPositions != null)
+                if (tmpDebugShowPositions != null)
                     tmpDebugShowPositions.transform.localRotation = Quaternion.Euler(180, 0, 0);
             }
             else
@@ -253,12 +275,48 @@ public class MarkerSpacePinManager : AMarkerManager
                 scaleInCm = new Vector3(scaleInCm.x, scaleInCm.y, 0.01f);
                 HighlightProxy.transform.localScale = scaleInCm;
                 HighlightProxy.transform.localPosition = new Vector3(0, 0, 0);
-                Button.transform.localPosition = new Vector3(0, 0, -0.0634f);
-                Button.transform.localRotation = Quaternion.identity;
+
+                MoveButton(UpdatePoseButton, new Vector3(-0.04f, 0, -0.0634f), Quaternion.identity);
+                MoveButton(UpdateWorldButton, new Vector3(0, 0, -0.0634f), Quaternion.identity);
+                MoveButton(DeleteButton, new Vector3(0.04f, 0, -0.0634f), Quaternion.identity);
+
+                var collider = _spacePin.transform.GetComponent<BoxCollider>();
+                if (collider != null)
+                {
+                    collider.center = Vector3.zero;
+                    collider.size = scaleInCm;
+                }
             }
         }
     }
 
+    private void MoveButton(GameObject button, Vector3 position, Quaternion rotation)
+    {
+        button.transform.localPosition = position;
+        button.transform.localRotation = rotation;
 
+    }
+
+    #region CALLED_BY_BUTTONS
+    public void DeleteThisMarker()
+    {
+        if (_myManager != null)
+            _myManager.RemoveAMarker(this);
+    }
+    public void UpdateMarkerPose() // only move the marker, don't move the virtual world with the new scan
+    {
+        if (_spacePin != null)
+            _spacePin.Reset();
+        _doAfterScan = DoAfterScan.UpdateMarker;
+    }
+
+    public void UpdateWorldWithMarker() // move the virtual world with the new scan
+    {
+        if (_spacePin != null)
+            _spacePin.Reset();
+        _doAfterScan = DoAfterScan.UpdateWorld;
+
+    }
+    #endregion
 }
 

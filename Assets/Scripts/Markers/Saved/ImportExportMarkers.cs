@@ -17,8 +17,8 @@ public class ImportExportMarkers : ImportExportJSON<MarkerData>
     {
         List<MarkerData> markersList = new List<MarkerData>
         {
-            new MarkerData(true, "AQRCode_1", new Vector3(0, 0, 0), Quaternion.Euler(180,0,0)), // QR is inversed
-            new MarkerData(true, "AQRCode_2", new Vector3(2.67f, 0, 0), Quaternion.Euler(180,0,0)) // QR is inversed
+            new MarkerData(true, "AQRCode_1", new Vector3(0, 0, 0), Quaternion.Euler(180,0,0)) // QR is inversed
+            //new MarkerData(true, "AQRCode_2", new Vector3(2.67f, 0, 0), Quaternion.Euler(180,0,0)) // QR is inversed
         };
 
         MyMarkersManager.AddOrUpdateMarkersByJSON(markersList);

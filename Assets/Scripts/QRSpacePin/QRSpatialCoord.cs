@@ -4,6 +4,7 @@
 using UnityEngine;
 
 using Microsoft.MixedReality.WorldLocking.Tools;
+using Microsoft.MixedReality.Toolkit.Utilities;
 
 /// A note about the appearance of "global::Windows.Etc" here. This is to disambiguate between
 /// Windows.Perception.Spatial, which we want, and Microsoft.Windows.Perception.Spatial, which we don't want.
@@ -157,6 +158,13 @@ namespace Microsoft.MixedReality.WorldLocking.Samples.Advanced.QRSpacePins
             Vector3 position = new Vector3(sysPosition.X, sysPosition.Y, sysPosition.Z);
             Quaternion rotation = new Quaternion(sysRotation.X, sysRotation.Y, sysRotation.Z, sysRotation.W);
             Pose pose = new Pose(position, rotation);
+
+            //// If there is a parent to the camera that means we are using teleport and we should not apply the teleport
+            //// to these objects so apply the inverse
+            //if (CameraCache.Main.transform.parent != null)
+            //{
+            //    pose = pose.GetTransformedBy(CameraCache.Main.transform.parent);
+            //}
 
             SimpleConsole.AddLine(trace, $"Adjusted {pose}");
 

@@ -2,6 +2,7 @@
 using Microsoft.MixedReality.WorldLocking.Core;
 using Microsoft.MixedReality.WorldLocking.Samples.Advanced.QRSpacePins;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -24,6 +25,9 @@ public class MarkersSpacePinsManager : AMarkersManager // TODO : refactoriser, p
     public ImportExportMarkers MyImportExportMarkers;
     //QRCODES
     private QRSpatialCoord _tmpCoordinateSystem = null;
+
+    private Coroutine m_myCoroutineRef;
+    private bool _dontScan;
 
     //The virtual poses in the scene to be matched with the poses of the markers in the physical world.
     [SerializeField]
@@ -78,6 +82,23 @@ public class MarkersSpacePinsManager : AMarkersManager // TODO : refactoriser, p
         Destroy(marker.gameObject);
 
         MyImportExportMarkers.Export();
+
+        for (int i = 0; i < _markers.Count; i++)
+        {
+            _markers[i].SetAgainLockedPose();
+        }
+        _dontScan = true;
+        if (m_myCoroutineRef != null)
+            StopCoroutine(m_myCoroutineRef);
+        m_myCoroutineRef = StartCoroutine(WaitBeforeScanAgain());
+    }
+
+    private IEnumerator WaitBeforeScanAgain()
+    {
+        yield return null;
+        yield return null;
+
+        _dontScan = false;
     }
 
     public void DeleteAllAddedMarkers() // call from button
@@ -118,8 +139,16 @@ public class MarkersSpacePinsManager : AMarkersManager // TODO : refactoriser, p
             }
         }
         else
-        {            
-            currentMarker.UpdateByQR(qrCode);
+        {
+            if (currentMarker.ToDoAfterScan == MarkerSpacePinManager.DoAfterScan.UpdateMarker)
+            {
+                currentMarker.UpdateByQRJustAdded(qrCode);
+                MyImportExportMarkers.Export();
+            }
+            else
+            {
+                currentMarker.UpdateByQR(qrCode);
+            }
         }
     }
 
